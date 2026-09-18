@@ -4,7 +4,6 @@ class Avo::Resources::AuthorProposal < Avo::BaseResource
   self.title = :id
   self.includes = [ :author, :matched_entry ]
 
-  # Disable create/edit/delete - proposals are created via public forms only
   self.visible_on_sidebar = true
 
   # Enable search on submitter_email
@@ -14,6 +13,20 @@ class Avo::Resources::AuthorProposal < Avo::BaseResource
       query.where("submitter_email LIKE ?", "%#{sanitized_query}%")
     }
   }
+
+  # Read only: the write routes are refused by Avo::AuthorProposalsController, so
+  # the buttons that lead to them are not offered either.
+  def render_index_controls(**)
+    [ Avo::Resources::Controls::ActionsList.new(as_index_control: true) ]
+  end
+
+  def render_show_controls
+    [ Avo::Resources::Controls::BackButton.new, Avo::Resources::Controls::ActionsList.new ]
+  end
+
+  def render_row_controls(item:)
+    [ Avo::Resources::Controls::ShowButton.new(item: item) ]
+  end
 
   def fields
     field :id, as: :id, link_to_record: true

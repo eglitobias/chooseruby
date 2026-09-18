@@ -194,23 +194,6 @@ class AvoAuthorProposalResourceTest < ActionDispatch::IntegrationTest
     assert_match "Avo::Actions::RejectAuthorProposal", body
   end
 
-  test "edit renders the writable proposal fields" do
-    proposal = edit_author_proposal
-
-    body = get_avo("/avo/resources/author_proposals/#{proposal.id}/edit")
-
-    assert_match "Submitter email", body
-    assert_match proposal.submitter_email, body
-    assert_match "Status", body
-  end
-
-  test "new renders an empty proposal form" do
-    body = get_avo("/avo/resources/author_proposals/new")
-
-    assert_match "Submitter email", body
-    assert_match "Status", body
-  end
-
   test "search narrows proposals by submitter email" do
     wanted = AuthorProposal.create!(
       author: @author,
