@@ -4,18 +4,38 @@
 
 ## Test coverage
 
-SimpleCov measures line and branch coverage on every `bin/rails test` run and fails
-the run when coverage drops below the minimums in `.simplecov`. The target is 100%
-line and branch coverage; the minimums are a ratchet on the way there, so raise them
-whenever coverage rises. Never lower them.
+This project requires 100% line and branch coverage through SimpleCov. `.simplecov`
+enforces it globally and per file, so `bin/rails test` fails when any file drops
+below it.
 
-When a line or branch is uncovered, decide which case it is before changing anything:
+When you find a coverage issue, decide which bucket it falls into:
 
-- **The code does too much.** No test requires that behaviour. Simplify the implementation.
-- **A test is missing.** The behaviour is intentional but unobserved. Add a test.
+- **A) The code does too much** for what the tests ask for. The coverage issue
+  reveals behaviour that no test requires. The fix is to simplify the implementation.
+- **B) A test is missing.** The behaviour is intentional but no test observes it.
+  The fix is to add a test.
 
-If you are unsure which, ask.
+Decide between A) and B) before changing anything. If unsure, ask the user.
+
+Never lower a minimum, add a SimpleCov filter, or mark code with `:nocov:` to make
+the run pass.
+
+## Code smells
+
+`bin/reek .` must report no offenses.
+
+- Never disable a detector, weaken a threshold, exclude a path, or suppress an offense without explicit user approval.
+- Never add class-wide exclusions to make a folder pass.
+- Never add inline `:reek:` suppression comments to Ruby files.
+- Keep all user-approved Reek exceptions in `.reek.yml`.
+- Give approved exceptions the narrowest available scope and add a short YAML comment explaining why.
+- If an offense appears incorrect, conflicts with Rails conventions, or would require a harmful refactor, stop and ask the user. Include:
+  - The exact offense and location.
+  - Why it may not apply.
+  - The refactoring options.
+  - The proposed `.reek.yml` exception, if appropriate.
 
 ## Before finishing work
 
-Run `bin/ci` and make sure it reports no issues.
+Run `bin/ci` and make sure it reports no issues. Confirm that SimpleCov reports
+100% line and branch coverage with no per-file failures.

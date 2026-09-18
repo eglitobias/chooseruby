@@ -69,7 +69,7 @@ jobs:
         run: bin/rubocop -f github
 
       - name: Detect code smells
-        run: bin/reek app lib
+        run: bin/reek .
 
   test:
     runs-on: ubuntu-latest
