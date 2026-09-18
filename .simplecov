@@ -6,9 +6,10 @@ SimpleCov.load_profile "rails"
 # Rails runs tests in forked workers; track them too.
 SimpleCov.merge_subprocesses true
 
-# Minimums only make sense for a full-suite run. Set SKIP_COVERAGE_CHECK=1
-# when running a subset of the tests.
-enforce = ENV["SKIP_COVERAGE_CHECK"].to_s.empty?
+# Minimums only make sense for a full-suite run: a subset, and `test:system`
+# on its own, can never reach them. Set SKIP_COVERAGE_CHECK=1 for a subset.
+subset = ARGV.grep(/\Atest:/).any?
+enforce = ENV["SKIP_COVERAGE_CHECK"].to_s.empty? && !subset
 
 # Ratchet: raise these as coverage grows. Target is 100 (issue #44).
 SimpleCov.coverage :line do
