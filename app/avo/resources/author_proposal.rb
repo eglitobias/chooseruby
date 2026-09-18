@@ -42,10 +42,7 @@ class Avo::Resources::AuthorProposal < Avo::BaseResource
     field :author_name, as: :text,
           help: "Name for new author (only used when creating new author)",
           hide_on: [ :index ],
-          visible: ->(**kwargs) do
-            record = kwargs[:record]
-            record && record.respond_to?(:new_author_proposal?) && record.new_author_proposal?
-          end
+          visible: -> { resource.record&.new_author_proposal? }
 
     # Resource proposal
     field :resource_url, as: :text,
@@ -114,7 +111,7 @@ class Avo::Resources::AuthorProposal < Avo::BaseResource
           readonly: true,
           computed: true,
           hide_on: [ :edit, :new ],
-          help: "Type of proposal" do |record|
+          help: "Type of proposal" do
             unless record && record.respond_to?(:new_author_proposal?)
               ""
             else
@@ -127,7 +124,7 @@ class Avo::Resources::AuthorProposal < Avo::BaseResource
           computed: true,
           rows: 8,
           hide_on: [ :index, :edit, :new ],
-          help: "Summary of proposed changes" do |record|
+          help: "Summary of proposed changes" do
             unless record && record.respond_to?(:new_author_proposal?)
               ""
             else

@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 
-# Configuration only; `SimpleCov.start` lives in test/test_helper.rb.
+# Configuration only; `SimpleCov.start` lives in config/boot.rb and test_helper.rb.
 SimpleCov.load_profile "rails"
 
 # Rails runs tests in forked workers; track them too.
@@ -12,10 +12,10 @@ enforce = ENV["SKIP_COVERAGE_CHECK"].to_s.empty?
 
 # Ratchet: raise these as coverage grows. Target is 100 (issue #44).
 SimpleCov.coverage :line do
-  minimum 47 if enforce
+  minimum 76 if enforce
 end
 
 SimpleCov.coverage :branch do
   ignore :eval_generated
-  minimum 33 if enforce
+  minimum 62 if enforce
 end
