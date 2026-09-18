@@ -27,6 +27,17 @@ Rails/Output:
     - db/seeds/**/*
     - lib/imports/**/*
 
+# Skipping validations is deliberate in the places that are left: `update_all` is a
+# bulk statement over a relation, and the two exclusions below are a callback that
+# would recurse through a validated write and tests that age a timestamp to reach an
+# expiry path without rewriting updated_at.
+Rails/SkipsModelValidations:
+  AllowedMethods:
+    - update_all
+  Exclude:
+    - app/models/author.rb
+    - test/**/*
+
 # Thread safety is a property of the running application. Test scaffolding is
 # single-threaded per process, and lib/imports holds one-off import scripts that
 # are run by hand, never served.
