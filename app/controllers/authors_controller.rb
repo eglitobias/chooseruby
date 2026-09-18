@@ -18,7 +18,7 @@ class AuthorsController < ApplicationController
     # Eager load resources to avoid N+1 queries and paginate
     @entries = @author.entries.page(params[:page]).per(20)
   rescue ActiveRecord::RecordNotFound
-    render file: "#{Rails.root}/public/404.html", status: :not_found, layout: false
+    render file: "#{Rails.root.join("public/404.html")}", status: :not_found, layout: false
   end
 
   # API endpoint for author autocomplete search

@@ -40,7 +40,7 @@ class AuthenticationTest < ActionDispatch::IntegrationTest
 
       assert_response :success
       assert_nil response.parsed_body["email"]
-      assert_equal false, response.parsed_body["authenticated"]
+      assert_not response.parsed_body["authenticated"]
       assert_nil response.parsed_body["session_id"]
     end
   end
@@ -53,7 +53,7 @@ class AuthenticationTest < ActionDispatch::IntegrationTest
 
       assert_response :success
       assert_equal "editor@test.com", response.parsed_body["email"]
-      assert_equal true, response.parsed_body["authenticated"]
+      assert response.parsed_body["authenticated"]
       assert_equal Session.find_by!(token: token).id, response.parsed_body["session_id"]
     end
   end

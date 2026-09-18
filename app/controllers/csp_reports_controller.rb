@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 
-class CspReportsController < ActionController::Base
+class CspReportsController < ApplicationController
   skip_forgery_protection
 
   def create

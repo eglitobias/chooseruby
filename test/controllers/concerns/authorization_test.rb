@@ -39,7 +39,7 @@ class AuthorizationTest < ActionDispatch::IntegrationTest
       get "/probe"
 
       assert_response :success
-      assert_equal false, response.parsed_body["can_administer"]
+      assert_not response.parsed_body["can_administer"]
     end
   end
 
@@ -50,7 +50,7 @@ class AuthorizationTest < ActionDispatch::IntegrationTest
       get "/probe"
 
       assert_response :success
-      assert_equal true, response.parsed_body["can_administer"]
+      assert response.parsed_body["can_administer"]
     end
   end
 

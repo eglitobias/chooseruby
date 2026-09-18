@@ -52,7 +52,7 @@ class EntryRelatedResourcesTest < ActiveSupport::TestCase
 
     related = @main_entry.related_resources
 
-    refute_includes related, @main_entry, "Should not include the current entry in results"
+    assert_not_includes related, @main_entry, "Should not include the current entry in results"
   end
 
   test "distributes 2 resources from each of first 3 categories" do
@@ -179,9 +179,9 @@ class EntryRelatedResourcesTest < ActiveSupport::TestCase
     related = @main_entry.related_resources
 
     assert_includes related, visible_entry, "Should include visible entry"
-    refute_includes related, unpublished_entry, "Should not include unpublished entry"
-    refute_includes related, pending_entry, "Should not include pending entry"
-    refute_includes related, rejected_entry, "Should not include rejected entry"
+    assert_not_includes related, unpublished_entry, "Should not include unpublished entry"
+    assert_not_includes related, pending_entry, "Should not include pending entry"
+    assert_not_includes related, rejected_entry, "Should not include rejected entry"
   end
 
   test "orders by updated_at desc recently curated" do

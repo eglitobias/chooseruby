@@ -195,7 +195,7 @@ class ResourceSubmissionMailerTest < ActionMailer::TestCase
   test "notify_team email displays submitter information correctly" do
     article = Article.create!(
       author_name: "DHH",
-      publication_date: Date.today - 30.days
+      publication_date: Time.zone.today - 30.days
     )
 
     entry = Entry.create!(

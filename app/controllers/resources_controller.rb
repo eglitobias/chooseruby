@@ -41,7 +41,7 @@ class ResourcesController < ApplicationController
     @author_resources = related_by_author(@entry)
     @related_resources = related_by_topic(@entry)
   rescue ActiveRecord::RecordNotFound
-    render file: "#{Rails.root}/public/404.html", status: :not_found, layout: false
+    render file: "#{Rails.root.join("public/404.html")}", status: :not_found, layout: false
   end
 
   private

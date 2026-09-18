@@ -438,7 +438,7 @@ class AuthorProposal < ApplicationRecord
     normalized = normalized.sub(/\Ahttp:\/\/www\./, "http://")
 
     # Remove trailing slash
-    normalized = normalized.sub(/\/\z/, "")
+    normalized = normalized.delete_suffix("/")
 
     normalized
   end

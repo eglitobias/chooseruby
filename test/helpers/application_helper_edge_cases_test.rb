@@ -24,7 +24,7 @@ class ApplicationHelperEdgeCasesTest < ActionView::TestCase
 
     result = breadcrumbs(items)
 
-    refute_match(/<a[^>]*>Unlinked Section<\/a>/, result)
+    assert_no_match(/<a[^>]*>Unlinked Section<\/a>/, result)
     assert_match(/<span[^>]*font-semibold[^>]*>Unlinked Section<\/span>/, result)
     # Still separated from the following crumb.
     assert_equal 2, result.scan(/›/).count
@@ -38,7 +38,7 @@ class ApplicationHelperEdgeCasesTest < ActionView::TestCase
 
     result = breadcrumbs(items)
 
-    refute_match(/<a/, result)
+    assert_no_match(/<a/, result)
     assert_match(/Blank Url/, result)
   end
 end

@@ -19,7 +19,6 @@ class Avo::Filters::EntryTagsFilter < Avo::Filters::SelectFilter
          .compact
          .uniq
          .sort
-         .map { |tag| [ tag.titleize, tag ] }
-         .to_h
+         .index_by { |tag| tag.titleize }
   end
 end

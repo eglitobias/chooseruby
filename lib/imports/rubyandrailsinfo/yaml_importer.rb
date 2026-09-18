@@ -533,7 +533,7 @@ module Imports
 
       def parse_time(str)
         return nil if str.blank?
-        Time.parse(str)
+        Time.zone.parse(str)
       rescue
         nil
       end
