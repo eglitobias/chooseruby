@@ -3,6 +3,10 @@
 # Configuration only; `SimpleCov.start` lives in config/boot.rb and test_helper.rb.
 SimpleCov.load_profile "rails"
 
+# Parallel agents and parallel runs share one resultset file. Point a run at its
+# own directory with COVERAGE_DIR to keep the numbers honest.
+SimpleCov.coverage_dir ENV.fetch("COVERAGE_DIR", "coverage")
+
 # Rails runs tests in forked workers; track them too.
 SimpleCov.merge_subprocesses true
 
@@ -11,7 +15,7 @@ SimpleCov.merge_subprocesses true
 subset = ARGV.grep(/\Atest:/).any?
 enforce = ENV["SKIP_COVERAGE_CHECK"].to_s.empty? && !subset
 
-# Ratchet: raise these as coverage grows. Target is 100 (issue #44).
+# Issue #44: 100% line and branch, globally and per file.
 SimpleCov.coverage :line do
   minimum 76 if enforce
 end

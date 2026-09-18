@@ -42,7 +42,7 @@ class Avo::Resources::AuthorProposal < Avo::BaseResource
     field :author_name, as: :text,
           help: "Name for new author (only used when creating new author)",
           hide_on: [ :index ],
-          visible: -> { resource.record&.new_author_proposal? }
+          visible: -> { resource.record.new_author_proposal? }
 
     # Resource proposal
     field :resource_url, as: :text,
@@ -112,11 +112,7 @@ class Avo::Resources::AuthorProposal < Avo::BaseResource
           computed: true,
           hide_on: [ :edit, :new ],
           help: "Type of proposal" do
-            unless record && record.respond_to?(:new_author_proposal?)
-              ""
-            else
-              record.new_author_proposal? ? "New Author" : "Edit Existing Author"
-            end
+            record.new_author_proposal? ? "New Author" : "Edit Existing Author"
           end
 
     field :changes_summary, as: :textarea,
@@ -125,49 +121,54 @@ class Avo::Resources::AuthorProposal < Avo::BaseResource
           rows: 8,
           hide_on: [ :index, :edit, :new ],
           help: "Summary of proposed changes" do
-            unless record && record.respond_to?(:new_author_proposal?)
-              ""
+            author = record.author
+            summary = []
+
+            if record.new_author_proposal?
+              summary << "Creating new author: #{record.author_name}"
             else
-              summary = []
-
-              if record.new_author_proposal?
-                summary << "Creating new author: #{record.author_name}"
-              else
-                summary << "Editing author: #{record.author&.name}"
-              end
-
-              if record.has_resource_proposal?
-                if record.matched_entry?
-                  summary << "\nResource: Matched entry ##{record.matched_entry_id} - #{record.matched_entry&.title}"
-                else
-                  summary << "\nResource: Unmatched URL - #{record.resource_url}"
-                end
-              end
-
-              if record.has_link_updates?
-                summary << "\nLink Updates:"
-                record.link_updates.each do |field, url|
-                  current_value = record.author&.send(field) if record.author
-                  summary << "  - #{field}: #{current_value.presence || '(blank)'} → #{url}"
-                end
-              end
-
-              if record.bio_text.present?
-                current_bio = record.author&.bio if record.author
-                summary << "\nBio:"
-                summary << "  Current: #{current_bio.presence || '(blank)'}"
-                summary << "  Proposed: #{record.bio_text}"
-              end
-
-              if record.description_text.present?
-                current_desc = record.author&.description if record.author&.respond_to?(:description)
-                summary << "\nDescription:"
-                summary << "  Current: #{current_desc.presence || '(blank)'}"
-                summary << "  Proposed: #{record.description_text}"
-              end
-
-              summary.join("\n")
+              # A proposal is a "new author" proposal precisely when it has no
+              # author, so the association is always loaded on this branch.
+              summary << "Editing author: #{author.name}"
             end
+
+            if record.has_resource_proposal?
+              if record.matched_entry?
+                summary << "\nResource: Matched entry ##{record.matched_entry_id} - #{record.matched_entry.title}"
+              else
+                summary << "\nResource: Unmatched URL - #{record.resource_url}"
+              end
+            end
+
+            if record.has_link_updates?
+              summary << "\nLink Updates:"
+              # `attribute`, not `field`: `field` is the Avo DSL method this
+              # very block lives inside. The keys are whitelisted by
+              # AuthorProposal::VALID_LINK_FIELDS.
+              record.link_updates.each do |attribute, url|
+                current_value = author&.public_send(attribute)
+                summary << "  - #{attribute}: #{current_value.presence || '(blank)'} → #{url}"
+              end
+            end
+
+            bio_text = record.bio_text
+            if bio_text.present?
+              current_bio = author&.bio
+              summary << "\nBio:"
+              summary << "  Current: #{current_bio.presence || '(blank)'}"
+              summary << "  Proposed: #{bio_text}"
+            end
+
+            description_text = record.description_text
+            if description_text.present?
+              summary << "\nDescription:"
+              # Author carries no description attribute, so a proposed
+              # description never has a current value to compare against.
+              summary << "  Current: (blank)"
+              summary << "  Proposed: #{description_text}"
+            end
+
+            summary.join("\n")
           end
   end
 

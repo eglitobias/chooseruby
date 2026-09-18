@@ -3,7 +3,7 @@
 class Avo::Filters::EntryTagsFilter < Avo::Filters::SelectFilter
   self.name = "Tags"
 
-  def apply(request, query, value)
+  def apply(_request, query, value)
     return query if value.blank?
 
     # Filter entries that have the selected tag in their tags array

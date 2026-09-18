@@ -47,7 +47,9 @@ class Avo::Actions::RejectAuthorProposalFailuresTest < ActiveSupport::TestCase
 
   test "reject action reports proposals that cannot be saved" do
     proposal = pending_proposal
-    proposal.update_column(:submitter_email, "")
+    # Left invalid in memory, so `reject!` fails on save without the test
+    # having to write an invalid row.
+    proposal.submitter_email = ""
 
     action = Avo::Actions::RejectAuthorProposal.new(record: proposal, resource: nil, user: nil, view: :index)
     action.handle(records: [ proposal ], fields: { admin_comment: "Not enough detail" }, current_user: nil, resource: nil)
@@ -62,7 +64,7 @@ class Avo::Actions::RejectAuthorProposalFailuresTest < ActiveSupport::TestCase
   test "reject action rejects the healthy proposals of a failing batch" do
     good = pending_proposal(name: "Jane Doe", email: "good@example.com")
     bad = pending_proposal(name: "John Roe", email: "bad@example.com")
-    bad.update_column(:submitter_email, "")
+    bad.submitter_email = ""
 
     action = Avo::Actions::RejectAuthorProposal.new(record: good, resource: nil, user: nil, view: :index)
     action.handle(records: [ good, bad ], fields: { admin_comment: "Not enough detail" }, current_user: nil, resource: nil)

@@ -6,10 +6,9 @@ require_relative "../avo_admin_helper"
 
 # Drives the Avo AuthorProposal admin pages.
 #
-# NOTE: the `proposal_type` and `changes_summary` computed fields cannot be
-# asserted here because their blocks are declared as `do |record|`, and Avo's
-# ExecutionContext instance_execs blocks with no arguments, so `record` is
-# always nil and both fields render as blank. See the test report.
+# The `proposal_type` and `changes_summary` computed fields are asserted
+# through the rendered show page: Avo instance_execs their blocks against an
+# ExecutionContext that exposes `record`, so the summary text really is built.
 class AvoAuthorProposalResourceTest < ActionDispatch::IntegrationTest
   include AvoAdminHelper
 
@@ -83,6 +82,7 @@ class AvoAuthorProposalResourceTest < ActionDispatch::IntegrationTest
 
     assert_match entry.title, body
     assert_match "/avo/resources/entries/#{entry.id}", body
+    assert_match "Resource: Matched entry ##{entry.id} - #{entry.title}", body
   end
 
   test "show renders the normalized and original resource URLs side by side" do
@@ -147,6 +147,42 @@ class AvoAuthorProposalResourceTest < ActionDispatch::IntegrationTest
     assert_match "A proposed long-form description", body
     assert_match "Please review quickly", body
     assert_match "Sam Submitter", body
+  end
+
+  test "show summarises the changes an edit proposal asks for" do
+    proposal = AuthorProposal.create!(
+      author: @author,
+      bio_text: "A freshly proposed bio",
+      link_updates: { "github_url" => "https://github.com/proposed" },
+      submitter_email: "summary@example.com"
+    )
+
+    body = get_avo("/avo/resources/author_proposals/#{proposal.id}")
+
+    assert_match "Edit Existing Author", body
+    assert_match "Editing author: #{@author.name}", body
+    assert_match "github_url: https://github.com/existing", body
+    assert_match "Current: Current bio on file", body
+    assert_match "Proposed: A freshly proposed bio", body
+  end
+
+  test "show summarises a new author proposal and its unmatched resource URL" do
+    proposal = AuthorProposal.create!(
+      author_name: "Brand New Person",
+      description_text: "A proposed description",
+      link_updates: { "github_url" => "https://github.com/brand-new" },
+      resource_url: "https://example.com/nothing-matched",
+      submitter_email: "newsummary@example.com"
+    )
+
+    body = get_avo("/avo/resources/author_proposals/#{proposal.id}")
+
+    assert_match "New Author", body
+    assert_match "Creating new author: Brand New Person", body
+    assert_match "Resource: Unmatched URL - http://example.com/nothing-matched", body
+    # There is no author yet, so every current value is blank.
+    assert_match "github_url: (blank)", body
+    assert_match "Proposed: A proposed description", body
   end
 
   test "show offers the approve and reject actions" do
