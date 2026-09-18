@@ -37,6 +37,22 @@ class AuthorProposalsControllerTest < ActionDispatch::IntegrationTest
     assert_select "div.text-rose-700", text: /couldn't save/
   end
 
+  test "POST create redisplays the new author form when a new author proposal is invalid" do
+    assert_no_difference "AuthorProposal.count" do
+      post author_proposals_path, params: {
+        author_proposal: {
+          author_name: "Brand New Author",
+          resource_url: "https://example.com/resource",
+          submitter_name: "John Doe"
+          # Missing submitter_email (required)
+        }
+      }
+    end
+
+    assert_response :unprocessable_entity
+    assert_select "input#author_proposal_author_name"
+  end
+
   test "POST create successfully creates pending proposal" do
     author = Author.create!(name: "Test Author", status: :approved)
 

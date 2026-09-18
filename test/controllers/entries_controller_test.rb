@@ -126,6 +126,47 @@ class EntriesControllerTest < ActionDispatch::IntegrationTest
     assert_select "form[action=?]", entries_path
   end
 
+  test "POST create stores the entry when the submitted author no longer exists" do
+    missing_author_id = Author.maximum(:id).to_i + 1
+
+    assert_difference("Entry.count", 1) do
+      post entries_path, params: {
+        entry: {
+          title: "Entry with a stale author reference",
+          url: "https://example.com/stale-author",
+          description: "Test description",
+          resource_type: "RubyGem",
+          submitter_email: "john@example.com",
+          gem_name: "stale-author-gem",
+          author_id: missing_author_id
+        }
+      }
+    end
+
+    assert_empty Entry.last.authors
+    assert_redirected_to entry_success_path
+  end
+
+  test "POST create leaves the price unset for a Course submitted without one" do
+    assert_difference([ "Entry.count", "Course.count" ], 1) do
+      post entries_path, params: {
+        entry: {
+          title: "Free Ruby Course",
+          url: "https://example.com/free-course",
+          description: "Test description",
+          resource_type: "Course",
+          submitter_email: "john@example.com",
+          platform: "YouTube",
+          instructor: "Jane Doe",
+          is_free: true
+        }
+      }
+    end
+
+    assert_nil Entry.last.entryable.price_cents
+    assert_redirected_to entry_success_path
+  end
+
   # Test 3.1.7: POST create successful submission redirects and sends emails
   test "POST create successful submission sends emails" do
     assert_emails 2 do

@@ -6,18 +6,18 @@ class ResourcesController < ApplicationController
 
     # Build query with all filter parameters
     permitted_params = params.permit(:q, :level, :type, :sort).to_h
-    @directory_query = EntryDirectoryQuery.new(permitted_params)
+    directory_query = EntryDirectoryQuery.new(permitted_params)
 
     # Extract query state for view
-    @query = @directory_query.query
-    @active_level = @directory_query.level
-    @active_type = @directory_query.type
+    @query = directory_query.query
+    @active_level = directory_query.level
+    @active_type = directory_query.type
 
     # Fetch featured resources (global featured using featured_at)
     @featured_entries = Entry.visible.featured.with_directory_includes.limit(6)
 
     # Paginate filtered results (12 per page)
-    @entries = @directory_query.call.page(params[:page]).per(12)
+    @entries = directory_query.call.page(params[:page]).per(12)
   end
 
   def show
@@ -65,9 +65,9 @@ class ResourcesController < ApplicationController
     return [] if entry.categories.empty?
 
     related = entry.related_resources(limit: 5)
-    return related if related.size >= 5
-
     additional_needed = 5 - related.size
+    return related if additional_needed <= 0
+
     type_related = Entry
       .strict_loading
       .visible

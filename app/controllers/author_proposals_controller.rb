@@ -38,13 +38,7 @@ class AuthorProposalsController < ApplicationController
     if @author_proposal.save
       redirect_to author_proposal_success_path(@author_proposal)
     else
-      # Reload author for existing author proposals to display form correctly
-      if @author_proposal.author_id.present?
-        @author = Author.find_by(id: @author_proposal.author_id)
-        render :new, status: :unprocessable_entity
-      else
-        render :new_author, status: :unprocessable_entity
-      end
+      render_rejected_proposal
     end
   end
 
@@ -57,6 +51,16 @@ class AuthorProposalsController < ApplicationController
   end
 
   private
+
+  # Redisplays the form a rejected proposal came from, together with the author
+  # it belongs to when it proposes an edit to an existing profile.
+  def render_rejected_proposal
+    author_id = @author_proposal.author_id
+    return render :new_author, status: :unprocessable_entity if author_id.blank?
+
+    @author = Author.find_by(id: author_id)
+    render :new, status: :unprocessable_entity
+  end
 
   # Strong parameters for author proposal
   def author_proposal_params
@@ -83,10 +87,8 @@ class AuthorProposalsController < ApplicationController
       ]
     ).tap do |permitted|
       # Convert link_updates array to hash, removing blank values
-      if permitted[:link_updates].present?
-        link_hash = permitted[:link_updates].to_h.reject { |_k, v| v.blank? }
-        permitted[:link_updates] = link_hash.presence
-      end
+      link_updates = permitted[:link_updates]
+      permitted[:link_updates] = link_updates.to_h.reject { |_name, url| url.blank? }.presence if link_updates.present?
     end
   end
 end
