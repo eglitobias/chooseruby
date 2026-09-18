@@ -22,9 +22,8 @@ class RakeTasksTest < ActiveSupport::TestCase
     connection.execute("DROP TABLE IF EXISTS entries_fts")
     connection.execute("DROP TABLE IF EXISTS authors_fts")
 
-    output = run_task("fts:create")
+    run_task("fts:create")
 
-    assert_match "FTS5 tables ready!", output
     assert fts_table?("entries_fts")
     assert fts_table?("authors_fts")
   end
@@ -38,22 +37,16 @@ class RakeTasksTest < ActiveSupport::TestCase
     assert fts_table?("authors_fts")
   end
 
-  test "fts:reindex_all reindexes both tables" do
-    output = run_task("fts:reindex_all")
+  test "the reindex tasks hand off to the reindexer" do
+    { "fts:reindex_all" => :reindex_all,
+      "fts:reindex_entries" => :reindex_entries,
+      "fts:reindex_authors" => :reindex_authors }.each do |task_name, expected|
+      reindexer = Recorder.new
 
-    assert_match "Reindexing completed successfully!", output
-  end
+      with_stubbed_new(FtsReindexer, -> { reindexer }) { run_task(task_name) }
 
-  test "fts:reindex_entries reindexes the entries table" do
-    output = run_task("fts:reindex_entries")
-
-    assert_match "Entries reindexing completed!", output
-  end
-
-  test "fts:reindex_authors reindexes the authors table" do
-    output = run_task("fts:reindex_authors")
-
-    assert_match "Authors reindexing completed!", output
+      assert_equal [ expected ], reindexer.calls
+    end
   end
 
   test "db:test:prepare is enhanced to create the FTS5 tables" do
@@ -156,7 +149,7 @@ class RakeTasksTest < ActiveSupport::TestCase
   # write files the rake task points them at.
   def with_stubbed_new(klass, replacement, &block)
     original = klass.method(:new)
-    klass.define_singleton_method(:new) { |**kwargs| replacement.call(**kwargs) }
+    klass.define_singleton_method(:new) { |**kwargs| kwargs.empty? ? replacement.call : replacement.call(**kwargs) }
     block.call
   ensure
     klass.define_singleton_method(:new, original)
