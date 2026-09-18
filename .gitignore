@@ -33,8 +33,10 @@
 # Ignore key files for decrypting credentials and more.
 /config/*.key
 
-.claude/settings.local.json
-/.claude/
+# Share the project's Claude Code gates; keep personal overrides out.
+/.claude/*
+!/.claude/settings.json
+!/.claude/hooks/
 /agent-os/
 
 /app/assets/builds/*
