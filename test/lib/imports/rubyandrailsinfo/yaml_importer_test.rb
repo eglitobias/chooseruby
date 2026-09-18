@@ -147,12 +147,17 @@ class YamlImporterTest < ActiveSupport::TestCase
     assert_equal "https://fresh.example", book.purchase_url
   end
 
-  test "an entry slug is derived from the title, not taken from the YAML" do
+  test "an entry keeps the slug the YAML carries" do
     import("newsletters" => [ row(1, { "title" => "Slugged News", "slug" => "yaml-slug",
                                        "website_url" => "https://slug.example" }) ])
 
-    assert_equal "slugged-news", Entry.find_by(title: "Slugged News").slug
-    assert_nil Entry.find_by(slug: "yaml-slug")
+    assert_equal "yaml-slug", Entry.find_by(title: "Slugged News").slug
+  end
+
+  test "an entry without a slug in the YAML derives one from its title" do
+    import("newsletters" => [ row(1, { "title" => "Unslugged News", "website_url" => "https://slug.example" }) ])
+
+    assert_equal "unslugged-news", Entry.find_by(title: "Unslugged News").slug
   end
 
   test "a lesson whose url is not a bare video id keeps that url" do
@@ -245,12 +250,49 @@ class YamlImporterTest < ActiveSupport::TestCase
 
   # Writes `data` as YAML files into a throwaway directory and runs a full import.
   # Returns everything the importer printed.
+  test "the legacy slugs are kept so the old links keep working" do
+    import(legacy_dump)
+
+    assert_equal "legacy-metaprogramming", Category.find_by(name: "Metaprogramming").slug
+    assert_equal "legacy-imported-author", Author.find_by(name: "Imported Author").slug
+    assert_equal "legacy-imported-course", Entry.find_by(title: "Imported Course").slug
+  end
+
+  test "importing the same dump twice creates nothing the second time" do
+    import(legacy_dump)
+
+    assert_no_difference [ "Category.count", "Author.count", "Entry.count", "Course.count" ] do
+      import(legacy_dump)
+    end
+  end
+
+  test "a re-import leaves no entryable behind without an entry" do
+    import(legacy_dump)
+    import(legacy_dump)
+
+    assert_equal Entry.where(entryable_type: "Course").count, Course.count
+    assert_empty Course.where.missing(:entry)
+  end
+
+  # A dump whose slugs do not match what the models would generate, which is what
+  # the legacy data looks like.
+  def legacy_dump
+    {
+      "tags" => [ tag_row(7, "Metaprogramming").merge("slug" => "legacy-metaprogramming") ],
+      "authors" => [ author_row(3, "Imported Author").merge("slug" => "legacy-imported-author") ],
+      "courses" => [ row(2, entry_for("Imported Course", "website_url" => "https://courses.example")
+                              .merge("slug" => "legacy-imported-course"), "free" => "t") ]
+    }
+  end
+
   def import(data = {})
     with_yaml(data) do |dir|
       out, = capture_io { Imports::Rubyandrailsinfo::YamlImporter.new(yaml_dir: dir).import_all }
       out
     end
   end
+
+  private
 
   # A String value is written verbatim, anything else is dumped as YAML.
   def with_yaml(data)

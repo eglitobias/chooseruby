@@ -179,7 +179,9 @@ class Entry < ApplicationRecord
                               allow_blank: true
 
   # Callbacks
-  before_validation :generate_slug, if: -> { title.present? && (slug.blank? || title_changed?) }
+  # A slug given on create is kept: the rubyandrailsinfo import carries the legacy
+  # slugs so old URLs keep working, and looks records up by them.
+  before_validation :generate_slug, if: -> { title.present? && (slug.blank? || (persisted? && title_changed?)) }
   after_save :sync_to_fts, if: :should_sync_fts?
   after_destroy :remove_from_fts
 
@@ -191,10 +193,10 @@ class Entry < ApplicationRecord
   scope :recently_curated, -> { order(updated_at: :desc) }
   scope :oldest_first, -> { reorder(updated_at: :asc) }
   scope :by_popularity, -> { reorder(Arel.sql(POPULARITY_ORDER_SQL)) }
-  # Beginner, intermediate, advanced, then everything else. The enum stores integers,
-  # so an unset level sorts with all_levels rather than ahead of beginner.
+  # Beginner, intermediate, advanced, all_levels, and an unset level last. The enum
+  # stores integers, so ordering by the column is ordering by the level.
   scope :beginner_first, lambda {
-    reorder(Arel.sql("COALESCE(entries.experience_level, #{experience_levels[:all_levels]}) ASC, entries.updated_at DESC"))
+    reorder(Arel.sql("entries.experience_level IS NULL"), experience_level: :asc, updated_at: :desc)
   }
 
   # Entries aimed at the given experience level, including those marked for all levels
@@ -320,8 +322,7 @@ class Entry < ApplicationRecord
   # Check if ActionText description was changed during this save
   # We check saved changes on the rich_text_description association
   def description_was_changed?
-    # If rich_text_description was saved in this transaction, it changed
-    rich_text_description&.previous_changes&.any? || false
+    rich_text_description&.previous_changes.present?
   end
 
   # Sync entry data to FTS5 virtual table for full-text search

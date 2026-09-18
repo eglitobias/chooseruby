@@ -73,7 +73,9 @@ class Author < ApplicationRecord
   enum :status, { pending: 0, approved: 1 }, default: :pending
 
   # Callbacks
-  before_validation :generate_slug, if: -> { name.present? && (slug.blank? || name_changed?) }
+  # A slug given on create is kept: the rubyandrailsinfo import carries the legacy
+  # slugs so old URLs keep working, and looks records up by them.
+  before_validation :generate_slug, if: -> { name.present? && (slug.blank? || (persisted? && name_changed?)) }
   after_save :fetch_github_avatar, if: :saved_change_to_github_url?
   after_save :sync_to_fts, if: :saved_change_to_name?
   after_destroy :remove_from_fts

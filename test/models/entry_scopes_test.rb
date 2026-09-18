@@ -35,14 +35,14 @@ class EntryScopesTest < ActiveSupport::TestCase
     assert_equal [ beginner.id, intermediate.id, advanced.id ], ordered.map(&:id)
   end
 
-  test "beginner_first sorts an entry without a level with the all levels ones" do
+  test "beginner_first sorts an entry without a level last" do
     unset = entry("Unset", updated_at: 1.hour.ago, experience_level: nil)
     everyone = entry("Everyone", updated_at: 2.hours.ago, experience_level: :all_levels)
     advanced = entry("Advanced", updated_at: 3.hours.ago, experience_level: :advanced)
 
     ordered = entries(advanced, unset, everyone).beginner_first
 
-    assert_equal [ advanced.id, unset.id, everyone.id ], ordered.map(&:id)
+    assert_equal [ advanced.id, everyone.id, unset.id ], ordered.map(&:id)
   end
 
   test "for_experience_level keeps the level asked for and everything meant for all levels" do

@@ -51,7 +51,9 @@ class Category < ApplicationRecord
   validates :description, length: { maximum: 500 }, allow_blank: true
 
   # Callbacks
-  before_validation :generate_slug, if: -> { name.present? && (slug.blank? || name_changed?) }
+  # A slug given on create is kept: the rubyandrailsinfo import carries the legacy
+  # slugs so old URLs keep working, and looks records up by them.
+  before_validation :generate_slug, if: -> { name.present? && (slug.blank? || (persisted? && name_changed?)) }
 
   # Returns the count of visible (published and approved) entries in this category
   #

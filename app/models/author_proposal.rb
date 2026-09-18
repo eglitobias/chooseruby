@@ -337,19 +337,14 @@ class AuthorProposal < ApplicationRecord
 
   # Applies link_updates hash to author's link fields
   #
-  # Only updates fields that are present in the link_updates hash.
-  # Validates that all link fields are valid Author attributes.
+  # Only updates fields that carry a value; validation has already restricted
+  # the field names to VALID_LINK_FIELDS.
   #
   # @param target_author [Author] the author to update
   # @return [void]
   def apply_link_updates_to_author(target_author)
     link_updates.each do |field_name, url_value|
       next if url_value.blank?
-
-      # Validate field exists on Author model
-      unless target_author.respond_to?("#{field_name}=")
-        raise ArgumentError, "Invalid link field: #{field_name}"
-      end
 
       target_author.send("#{field_name}=", url_value)
     end
@@ -432,9 +427,8 @@ class AuthorProposal < ApplicationRecord
 
   # Normalizes resource_url and attempts to match with existing Entry
   # Stores original URL and sets matched_entry_id if found
+  # Only runs when resource_url is present (see the before_validation condition)
   def normalize_and_match_resource_url
-    return if resource_url.blank?
-
     # Store original URL before normalization
     self.original_resource_url = resource_url.dup
 

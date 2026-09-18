@@ -15,12 +15,20 @@ SimpleCov.merge_subprocesses true
 subset = ARGV.grep(/\Atest:/).any?
 enforce = ENV["SKIP_COVERAGE_CHECK"].to_s.empty? && !subset
 
-# Issue #44: 100% line and branch, globally and per file.
+# 100% line and branch, globally and per file. Never lower these: when a line or
+# branch is uncovered, either the code does too much or a test is missing.
 SimpleCov.coverage :line do
-  minimum 76 if enforce
+  if enforce
+    minimum 100
+    minimum 100, per: :file
+  end
 end
 
 SimpleCov.coverage :branch do
   ignore :eval_generated
-  minimum 62 if enforce
+
+  if enforce
+    minimum 100
+    minimum 100, per: :file
+  end
 end

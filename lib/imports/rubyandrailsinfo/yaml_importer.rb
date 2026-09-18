@@ -79,13 +79,20 @@ module Imports
           entry_data = row["entry"]
           next if entry_data.blank? || entry_data["title"].blank?
 
-          entryable = entryable_for(spec[:type], row, entry_data)
-          entry = Entry.find_or_create_by!(entryable: entryable) do |e|
-            set_entry_fields(e, entry_data, row, spec[:level])
-          end
+          entry = Entry.find_by(slug: entry_data["slug"]) || create_entry(spec, row, entry_data)
 
           @id_mapper.register_entry(spec[:type], row["id"], entry)
           entry
+        end
+      end
+
+      # The entryable is only built once the entry is known to be missing. Building it
+      # first and letting `find_or_create_by!(entryable:)` decide meant a fresh
+      # entryable never matched the entry that was already there, so every re-import
+      # duplicated the entry and orphaned the one before it.
+      def create_entry(spec, row, entry_data)
+        Entry.create!(entryable: entryable_for(spec[:type], row, entry_data)) do |entry|
+          set_entry_fields(entry, entry_data, row, spec[:level])
         end
       end
 
@@ -131,7 +138,7 @@ module Imports
 
       def entryable_for(type, row, entry_data)
         case type
-        when "Book" then book_for(row, entry_data)
+        when "Book" then book_for(row)
         when "Course" then Course.create!(is_free: parse_bool(row["free"]), **timestamps(row))
         when "Newsletter" then Newsletter.create!(name: entry_data["title"], **timestamps(row))
         when "Podcast" then Podcast.create!(**timestamps(row))
@@ -140,13 +147,12 @@ module Imports
         end
       end
 
-      # Books are idempotent on their ISBN. Without one the entry slug is the only
-      # handle on a book that was imported before.
-      def book_for(row, entry_data)
+      # Books are idempotent on their ISBN. Without one there is nothing to match on,
+      # and the entry this book belongs to was already looked up by its slug.
+      def book_for(row)
         return Book.find_or_create_by!(isbn: row["isbn"]) { |b| set_book_fields(b, row) } if row["isbn"].present?
 
-        imported = Entry.find_by(slug: entry_data["slug"], entryable_type: "Book")&.entryable
-        imported || Book.create! { |b| set_book_fields(b, row) }
+        Book.create! { |b| set_book_fields(b, row) }
       end
 
       def community_for(row, entry_data)
@@ -167,10 +173,11 @@ module Imports
 
       def set_entry_fields(entry, entry_data, row, level)
         entry.assign_attributes(
+          slug: entry_data["slug"],
           title: entry_data["title"],
           description: entry_data["content"],
           url: entry_url(entry_data, row),
-          status: :approved, # Entry derives its own slug from the title
+          status: :approved,
           published: true,
           experience_level: level,
           tags: [],
