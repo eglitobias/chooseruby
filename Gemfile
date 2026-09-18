@@ -87,6 +87,9 @@ group :development, :test do
 
   # Code coverage analysis [https://github.com/simplecov-ruby/simplecov]
   gem "simplecov", "~> 1.3", require: false
+
+  # Mutation testing [https://github.com/mbj/mutant]
+  gem "mutant-minitest", "~> 0.17.0", require: false
 end
 
 group :development do

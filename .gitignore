@@ -47,3 +47,6 @@ agents/
 
 # Ignore SimpleCov reports.
 /coverage/
+
+# Ignore mutant's run results; they are per-run output, not source.
+/.mutant/

@@ -3,6 +3,8 @@
 require "test_helper"
 
 class FtsQueryTest < ActiveSupport::TestCase
+  cover "FtsQuery*"
+
   test "wildcards a single word so that typing a prefix already matches" do
     assert_equal "matz*", FtsQuery.new("matz").to_s
   end

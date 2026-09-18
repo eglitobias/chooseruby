@@ -35,6 +35,29 @@ the run pass.
   - The refactoring options.
   - The proposed `.reek.yml` exception, if appropriate.
 
+## Mutation testing
+
+Line coverage says a line ran, not that a test would notice if it changed.
+[Mutant](https://github.com/mbj/mutant) changes the code and expects the suite to
+go red.
+
+```
+bin/mutant run
+```
+
+`config/mutant.yml` lists the covered subjects. Value objects are on it because
+they are pure and fast to mutate; add a subject once its tests survive mutation.
+
+- Never remove a subject, weaken the matcher, or ignore a mutation to make a run
+  green. A surviving mutation means a test is missing or the code does more than
+  the tests ask for - the same two buckets as a coverage gap.
+- A test file only covers its subject when it declares `cover "Subject*"`.
+- The run is not part of `bin/ci`: it is slow and is meant for the subjects you
+  touched, not for every commit.
+- A full run is not usable yet: on a Rails boot with the default worker settings
+  mutant exhausts the machine's memory. Keep it out of any automated step until
+  that is tuned.
+
 ## Before finishing work
 
 Run `bin/ci` and make sure it reports no issues. Confirm that SimpleCov reports

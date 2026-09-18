@@ -3,6 +3,8 @@
 require "test_helper"
 
 class SlugTest < ActiveSupport::TestCase
+  cover "Slug*"
+
   test "is the parameterized source when nobody owns it yet" do
     assert_equal "yukihiro-matsumoto", Slug.new("Yukihiro Matsumoto", taken_by: Author.none).to_s
   end
