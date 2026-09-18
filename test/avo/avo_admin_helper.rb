@@ -18,4 +18,12 @@ module AvoAdminHelper
     assert_response :success, "GET #{path} responded #{response.status}\n#{response.body.first(1500)}"
     response.body
   end
+
+  # Submits an Avo form. Avo redirects to the record on success and re-renders
+  # the form with 422 when a param was rejected, so anything but a redirect is
+  # a failure and the body is shown to make it diagnosable.
+  def submit_avo(method, path, params)
+    public_send(method, path, params: params)
+    assert_response :redirect, "#{method.upcase} #{path} responded #{response.status}\n#{response.body.first(1500)}"
+  end
 end

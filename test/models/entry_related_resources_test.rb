@@ -272,4 +272,24 @@ class EntryRelatedResourcesTest < ActiveSupport::TestCase
 
     assert_equal 3, related.length, "Should return 3 resources when only 1 per category available"
   end
+
+  test "stops visiting categories once the limit is filled" do
+    Entry.create!(
+      title: "Cat1 Only Resource",
+      url: "https://example.com/cat1-only",
+      published: true,
+      status: :approved
+    ).categories << @category1
+
+    Entry.create!(
+      title: "Cat2 Only Resource",
+      url: "https://example.com/cat2-only",
+      published: true,
+      status: :approved
+    ).categories << @category2
+
+    related = @main_entry.related_resources(limit: 1)
+
+    assert_equal [ "Cat1 Only Resource" ], related.map(&:title)
+  end
 end

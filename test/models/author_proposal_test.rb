@@ -167,6 +167,16 @@ class AuthorProposalTest < ActiveSupport::TestCase
     assert_includes proposal.errors[:link_updates], "github_url must be a valid URL starting with http:// or https://"
   end
 
+  test "should reject link_updates for fields that are not links" do
+    proposal = AuthorProposal.new(
+      author: @author,
+      link_updates: { "name" => "https://example.com" },
+      submitter_email: "test@example.com"
+    )
+    assert_not proposal.save, "Saved proposal proposing a link for a field that holds no link"
+    assert_includes proposal.errors[:link_updates], "name is not a valid link field"
+  end
+
   test "should allow valid URLs in link_updates" do
     proposal = AuthorProposal.new(
       author: @author,

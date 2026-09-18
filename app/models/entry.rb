@@ -144,6 +144,20 @@ class Entry < ApplicationRecord
     "products" => "Product"
   }.freeze
 
+  # Orders entries by the popularity metric of their entryable, most popular first
+  POPULARITY_ORDER_SQL = <<~SQL.squish
+    COALESCE(
+      CASE entries.entryable_type
+        WHEN 'RubyGem' THEN (SELECT downloads_count FROM ruby_gems WHERE ruby_gems.id = entries.entryable_id)
+        WHEN 'Community' THEN (SELECT member_count FROM communities WHERE communities.id = entries.entryable_id)
+        WHEN 'Podcast' THEN (SELECT episode_count FROM podcasts WHERE podcasts.id = entries.entryable_id)
+        ELSE NULL
+      END,
+      0
+    ) DESC,
+    entries.updated_at DESC
+  SQL
+
   # Enums
   enum :experience_level, { beginner: 0, intermediate: 1, advanced: 2, all_levels: 3 }
   enum :status, { pending: 0, approved: 1, rejected: 2 }, default: :pending
@@ -175,6 +189,16 @@ class Entry < ApplicationRecord
   scope :pending, -> { where(status: :pending) }
   scope :visible, -> { published.approved }
   scope :recently_curated, -> { order(updated_at: :desc) }
+  scope :oldest_first, -> { reorder(updated_at: :asc) }
+  scope :by_popularity, -> { reorder(Arel.sql(POPULARITY_ORDER_SQL)) }
+  # Beginner, intermediate, advanced, then everything else. The enum stores integers,
+  # so an unset level sorts with all_levels rather than ahead of beginner.
+  scope :beginner_first, lambda {
+    reorder(Arel.sql("COALESCE(entries.experience_level, #{experience_levels[:all_levels]}) ASC, entries.updated_at DESC"))
+  }
+
+  # Entries aimed at the given experience level, including those marked for all levels
+  scope :for_experience_level, ->(level) { where(experience_level: experience_levels.values_at(level, "all_levels")) }
   scope :with_directory_includes, -> { preload(:entryable, :categories, :authors, :rich_text_description) }
 
   # Task 2.5: Featured scope - returns entries with featured_at set, ordered by most recent
@@ -204,6 +228,12 @@ class Entry < ApplicationRecord
   scope :products, -> { where(entryable_type: "Product") }
 
   class << self
+    # Experience levels a submitter can pick from, as [label, value] pairs.
+    # "all_levels" is excluded: it is what an entry gets when it suits everybody.
+    def selectable_experience_levels
+      experience_levels.keys.excluding("all_levels").map { |level| [ level.humanize, level ] }
+    end
+
     # Returns entries that are ready for the public directory with eager-loaded associations.
     # Note: Renamed from 'featured' to avoid conflict with featured scope
     def for_homepage(limit_count = 6)
@@ -274,16 +304,7 @@ class Entry < ApplicationRecord
   # Generate URL-friendly slug from title
   # Ensures uniqueness by appending number if needed
   def generate_slug
-    base_slug = title.parameterize
-    candidate_slug = base_slug
-    counter = 1
-
-    while Entry.where(slug: candidate_slug).where.not(id: id).exists?
-      candidate_slug = "#{base_slug}-#{counter}"
-      counter += 1
-    end
-
-    self.slug = candidate_slug
+    self.slug = Slug.new(title, taken_by: Entry.where.not(id: id)).to_s
   end
 
   # Determine if FTS sync should be triggered
@@ -306,44 +327,28 @@ class Entry < ApplicationRecord
   # Sync entry data to FTS5 virtual table for full-text search
   # Called after save when title, description, or tags changed
   def sync_to_fts
-    # Extract plain text from ActionText description
-    description_text = if description.present?
-                        description.to_plain_text
-    else
-                        ""
-    end
-
-    # Convert tags array to space-separated string
-    tags_text = tags.to_a.join(" ")
-
-    # Delete existing FTS row first (FTS5 tables don't support proper upserts)
-    ActiveRecord::Base.connection.execute(
-      ActiveRecord::Base.sanitize_sql_array([
-        "DELETE FROM entries_fts WHERE entry_id = ?",
-        id
-      ])
-    )
-
-    # Insert new FTS row
-    ActiveRecord::Base.connection.execute(
-      ActiveRecord::Base.sanitize_sql_array([
-        "INSERT INTO entries_fts (entry_id, title, description, tags) VALUES (?, ?, ?, ?)",
-        id,
-        title || "",
-        description_text,
-        tags_text
-      ])
+    fts_index.replace(
+      title: title || "",
+      description: description_plain_text,
+      tags: tags.to_a.join(" ")
     )
   end
 
   # Remove entry from FTS5 virtual table
   # Called after destroy
   def remove_from_fts
-    ActiveRecord::Base.connection.execute(
-      ActiveRecord::Base.sanitize_sql_array([
-        "DELETE FROM entries_fts WHERE entry_id = ?",
-        id
-      ])
-    )
+    fts_index.delete
+  end
+
+  # The entry's row in the FTS5 virtual table backing entry search
+  def fts_index
+    FtsIndex.new(table: "entries_fts", key_column: "entry_id", key: id)
+  end
+
+  # Plain text of the ActionText description, as indexed by FTS5
+  def description_plain_text
+    return "" if description.blank?
+
+    description.to_plain_text
   end
 end
